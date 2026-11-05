@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Simulador de fuerzas - Caja de 50 kg</title>
+<style>
+:root{font-family:Arial,sans-serif;color:#172033;background:#f3f6fb}
+body{margin:0;padding:22px}.wrap{max-width:900px;margin:auto}
+h1{font-size:25px;margin:0 0 6px}.sub{color:#526078;margin:0 0 20px}
+.card{background:white;border:1px solid #dce3ef;border-radius:14px;padding:18px;margin:14px 0;box-shadow:0 3px 12px #1720330a}
+label{font-weight:bold;display:block;margin-bottom:10px}
+input[type=range]{width:100%;accent-color:#2563eb}
+.big{font-size:26px;font-weight:bold;color:#1d4ed8}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:10px}
+.stat{background:#f5f8ff;border-radius:10px;padding:12px}.stat span{display:block;color:#526078;font-size:13px;margin-bottom:5px}.stat b{font-size:19px}
+.status{padding:10px 12px;border-radius:9px;font-weight:bold;background:#e8f2ff;color:#174ea6}
+svg{width:100%;height:auto;max-height:310px;background:#fbfcff;border-radius:10px}
+button{border:0;border-radius:8px;background:#e5edfb;padding:9px 13px;font-weight:bold;cursor:pointer;margin:4px}
+small{color:#64748b}
+</style>
+</head>
+<body>
+<div class="wrap">
+<h1>Simulador: fuerza y roce en una caja</h1>
+<p class="sub">Caja de 50 kg sobre un piso horizontal · g = 9.8 m/s² · μ estático = 0.6 · μ cinético = 0.4</p>
+<div class="card">
+<label for="force">Fuerza aplicada horizontal: <span id="forceLabel" class="big">0 N</span></label>
+<input id="force" type="range" min="0" max="500" step="1" value="0">
+<div style="display:flex;justify-content:space-between"><small>0 N</small><small>500 N</small></div>
+<div>
+<button data-v="0">0 N</button><button data-v="250">250 N</button><button data-v="294">294 N</button><button data-v="350">350 N</button><button data-v="196">196 N</button>
+</div>
+</div>
+<div class="card">
+<div id="status" class="status">La caja está en reposo.</div>
+<h3>Diagrama de cuerpo libre</h3>
+<svg viewBox="0 0 760 300" role="img" aria-label="Diagrama de fuerzas sobre una caja">
+<defs><marker id="arr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#2563eb"/></marker><marker id="redarr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6" fill="#dc2626"/></marker></defs>
+<line x1="70" y1="230" x2="690" y2="230" stroke="#475569" stroke-width="5"/>
+<rect x="300" y="130" width="160" height="95" rx="8" fill="#cbd5e1" stroke="#475569" stroke-width="2"/>
+<text x="380" y="182" text-anchor="middle" font-size="20" font-weight="bold" fill="#172033">Caja 50 kg</text>
+<line x1="380" y1="130" x2="380" y2="45" stroke="#2563eb" stroke-width="4" marker-end="url(#arr)"/>
+<text x="395" y="55" font-size="16" fill="#1d4ed8" id="normalText">Normal 490 N</text>
+<line x1="380" y1="225" x2="380" y2="286" stroke="#dc2626" stroke-width="4" marker-end="url(#redarr)"/>
+<text x="395" y="282" font-size="16" fill="#b91c1c" id="weightText">Peso 490 N</text>
+<line id="appliedArrow" x1="460" y1="175" x2="620" y2="175" stroke="#2563eb" stroke-width="4" marker-end="url(#arr)"/>
+<text x="540" y="158" text-anchor="middle" font-size="16" fill="#1d4ed8" id="appliedText">Aplicada 0 N</text>
+<line id="frictionArrow" x1="300" y1="195" x2="150" y2="195" stroke="#dc2626" stroke-width="4" marker-end="url(#redarr)"/>
+<text x="205" y="178" text-anchor="middle" font-size="16" fill="#b91c1c" id="frictionText">Roce 0 N</text>
+</svg>
+</div>
+<div class="card">
+<h3>Resultados</h3>
+<div class="grid">
+<div class="stat"><span>Peso</span><b>490 N</b></div>
+<div class="stat"><span>Fuerza normal</span><b>490 N</b></div>
+<div class="stat"><span>Roce máximo estático</span><b>294 N</b></div>
+<div class="stat"><span>Roce actual</span><b id="frictionValue">0 N</b></div>
+<div class="stat"><span>Fuerza neta</span><b id="netValue">0 N</b></div>
+<div class="stat"><span>Aceleración</span><b id="accValue">0 m/s²</b></div>
+</div>
+<p id="explain"></p>
+</div>
+<div class="card">
+<h3>Comprobaciones rápidas</h3>
+<ul>
+<li>Con 250 N: la caja no se mueve y el roce estático vale 250 N.</li>
+<li>Con 294 N: se alcanza el roce estático máximo.</li>
+<li>Con 350 N: el roce cinético vale 196 N, la fuerza neta 154 N y la aceleración 3.08 m/s².</li>
+<li>Con 196 N mientras desliza: la fuerza neta es cero y la velocidad permanece constante.</li>
+</ul>
+<small>Modelo ideal: superficie horizontal, sin otras fuerzas horizontales y empuje constante.</small>
+</div>
+</div>
+<script>
+const slider=document.getElementById('force');
+function update(){
+ const F=Number(slider.value), m=50, g=9.8, N=m*g, maxStatic=.6*N, kinetic=.4*N;
+ let friction, net, acc, moving;
+ if(F<=maxStatic){friction=F;net=0;acc=0;moving=false}
+ else{friction=kinetic;net=F-friction;acc=net/m;moving=true}
+ document.getElementById('forceLabel').textContent=F+' N';
+ document.getElementById('frictionValue').textContent=friction.toFixed(1)+' N';
+ document.getElementById('netValue').textContent=net.toFixed(1)+' N';
+ document.getElementById('accValue').textContent=acc.toFixed(2)+' m/s²';
+ document.getElementById('status').textContent=moving?'La caja está deslizándose.':'La caja permanece en reposo (en 294 N está en el límite de comenzar a moverse).';
+ document.getElementById('frictionText').textContent='Roce '+friction.toFixed(1)+' N';
+ document.getElementById('appliedText').textContent='Aplicada '+F+' N';
+ document.getElementById('explain').textContent=moving
+ ? 'La fuerza aplicada supera el roce estático máximo. Se usa el roce cinético de 196 N. La fuerza neta apunta hacia la derecha.'
+ : 'El roce estático iguala la fuerza aplicada y actúa en sentido contrario. Por eso la fuerza neta y la aceleración son cero.';
+ const scale=x=>Math.max(0,Math.min(160,x/500*160));
+ document.getElementById('appliedArrow').setAttribute('x2',460+scale(F));
+ document.getElementById('frictionArrow').setAttribute('x2',300-scale(friction));
+}
+slider.addEventListener('input',update);
+document.querySelectorAll('button[data-v]').forEach(b=>b.addEventListener('click',()=>{slider.value=b.dataset.v;update()}));
+update();
+</script>
+</body>
+</html>
